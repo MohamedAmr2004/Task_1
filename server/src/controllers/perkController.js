@@ -16,6 +16,25 @@ const perkSchema = Joi.object({
 
 }); 
 
+// schema for creating
+const createPerkSchema = Joi.object({
+  title: Joi.string().min(2).required(),
+  description: Joi.string().allow(''),
+  category: Joi.string().valid('food','tech','travel','fitness','other').default('other'),
+  discountPercent: Joi.number().min(0).max(100).default(0),
+  merchant: Joi.string().allow('')
+});
+
+// schema for updating (no defaults, all optional)
+const updatePerkSchema = Joi.object({
+  title: Joi.string().min(2),
+  description: Joi.string().allow(''),
+  category: Joi.string().valid('food','tech','travel','fitness','other'),
+  discountPercent: Joi.number().min(0).max(100),
+  merchant: Joi.string().allow('')
+}).min(1); // at least one field required
+
+
   
 
 // Filter perks by exact title match if title query parameter is provided 
@@ -69,9 +88,19 @@ export async function createPerk(req, res, next) {
 }
 // TODO
 // Update an existing perk by ID and validate only the fields that are being updated 
+// Update an existing perk by ID
 export async function updatePerk(req, res, next) {
-  
+  try {
+    const { value, error } = updatePerkSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const doc = await Perk.findByIdAndUpdate(req.params.id, value, { new: true });
+    if (!doc) return res.status(404).json({ message: 'Perk not found' });
+
+    res.json({ perk: doc });
+  } catch (err) { next(err); }
 }
+
 
 
 // Delete a perk by ID
